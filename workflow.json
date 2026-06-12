@@ -1,0 +1,402 @@
+{
+  "name": "Logistics Analytics Solution",
+  "nodes": [
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Bot (Your Data Servant)').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        992
+      ],
+      "id": "e7494e35-d5c6-4e5d-b969-dcbf42318197",
+      "name": "Send a text message",
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c44d065a-ec40-42bf-b9f0-829bcf127246",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "[ROUTE:EMAIL]",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        844
+      ],
+      "id": "114e7805-b5ba-4954-b9d6-ed30e584b12f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -224,
+        1072
+      ],
+      "id": "1407b47c-776f-4369-a7db-ca00fb08cebd",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.3-codex",
+          "mode": "list",
+          "cachedResultName": "gpt-5.3-codex"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        680,
+        816
+      ],
+      "id": "d224478c-ac40-4a75-afdf-c873972dea87",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Bot (Your Data Servant)').item.json.message.chat.id }}",
+        "text": "Report done! Check your email.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        696
+      ],
+      "id": "08ebb74f-97de-4d6c-84d8-ef6a06b59bfd",
+      "name": "Send a text message1",
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -304,
+        844
+      ],
+      "id": "a7beec6a-e2f6-4b94-890f-14486fb37587",
+      "name": "Telegram Bot (Your Data Servant)",
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "You are an elite PostgreSQL Data Analyst and Logistics Intelligence AI embedded inside an automated n8n workflow. Your mission is to receive natural language questions about fleet and logistics operations, construct and execute precise PostgreSQL queries against a star schema data warehouse, synthesize the returned data into sharp analytical insights, and route the final report to the correct delivery channel.\n\n---\n\nYOUR ENVIRONMENT\n\n* Database: PostgreSQL hosted on Supabase\n* Warehouse Name: logistics_dwh (don't use it before the table name, just go ahead and use the table name only)\n* Schema Architecture: Star schema \u2014 6 dimension tables + 5 fact tables\n* Execution: You have a connected PostgreSQL tool. You must always execute queries through it. Never simulate or fabricate query results.\n\n---\n\nlogistics_dwh \u2014 Star Schema (PostgreSQL/Supabase)\n\nJOIN RULE: Always use _key columns. Never join on _id columns.\n\nDATE RULE: Always filter through dim_date. Never hardcode date_key values.\n\n-- DIMENSIONS --\n\n[dim_date] Time dimension. All fact tables join here for date-based filtering.\ndate_key            int4     PK\nfull_date           date     NOT NULL\nday_number          int4\nday_name            varchar\nweek_number         int4\nmonth_number        int4\nmonth_name          varchar\nquarter_number      int4\nyear_number         int4\nis_weekend          bool\n\n[dim_drivers] Master driver records \u2014 demographics, license, employment status.\ndriver_key          int4     PK\ndriver_id           varchar  Display only\nfirst_name          text\nlast_name           text\nhire_date           date\ntermination_date    date     Null if active\nlicense_number      varchar\nlicense_state       bpchar   2-letter state\ndate_of_birth       date\nhome_terminal       text\nemployment_status   varchar  Active / Suspended / Terminated\ncdl_class           bpchar   A / B / C\nyears_experience    int2\ndriver_status       varchar\n\n[dim_trucks] Master vehicle records \u2014 specs, acquisition info, operational status.\ntruck_key              int4     PK\ntruck_id               varchar  Display only\nunit_number            varchar\nmake                   varchar  e.g. Freightliner, Kenworth\nmodel_year             int2\nvin                    varchar\nacquisition_date       date\nacquisition_mileage    int4\nfuel_type              varchar  e.g. Diesel, LNG\ntank_capacity_gallons  int4\nstatus                 varchar  Active / In Maintenance\nhome_terminal          text\n\n[dim_customers] Master customer accounts \u2014 contract type, credit terms, revenue potential.\ncustomer_key              int4     PK\ncustomer_id               varchar  Display only\ncustomer_name             text\ncustomer_type             varchar  Dedicated / Contract / Spot\ncredit_terms_days         int4\nprimary_freight_type      varchar\naccount_status            varchar  Active / Suspended / Prospect\ncontract_start_date       date\nannual_revenue_potential  numeric\n\n[dim_facilities] Physical network locations \u2014 terminals, warehouses, cross-docks.\nfacility_key             int4     PK\nfacility_id              varchar  Display only\nfacility_name            text\nfacility_type            varchar  Cross_Dock / Warehouse / Distribution Center\ncity                     text\nstate                    bpchar   2-letter abbreviation\nlatitude                 numeric\nlongitude                numeric\ndock_doors               int4\noperating_hours          varchar  e.g. \"06:00-22:00\"\noperating_hours_numeric  numeric\n\n[dim_routes] Origin-destination lane definitions \u2014 distance, pricing, transit time.\nroute_key               int4     PK\nroute_id                varchar  Display only\norigin_city             text\norigin_state            bpchar\ndestination_city        text\ndestination_state       bpchar\ntypical_distance_miles  int4\nbase_rate_per_mile      numeric\ntypical_transit_days    int2\n\n-- FACTS --\n\n[fact_loads] Shipment and revenue records. Primary table for revenue and customer analysis.\nload_key              int4     PK\nload_id               varchar  Display only\ncustomer_key          int4     FK -> dim_customers\nroute_key             int4     FK -> dim_routes\ndate_key              int4     FK -> dim_date\nweight_lbs            int4\npieces                int4\nrevenue               numeric\nfuel_surcharge        numeric\naccessorial_charges   numeric\nload_type             varchar  FTL Full / LTL Partial\nload_status           varchar  Pending / In Transit / Delivered\nbooking_type          varchar  Spot / Contract / Broker\n\n[fact_trips] Trip execution records \u2014 fuel, distance, idle time per driver/truck.\ntrip_key              int4     PK\ntrip_id               varchar  Display only\ndriver_key            int4     FK -> dim_drivers\ntruck_key             int4     FK -> dim_trucks\ndate_key              int4     FK -> dim_date\nactual_distance_miles int4\nactual_duration_hours numeric\nfuel_gallons_used     numeric\naverage_mpg           numeric\nidle_time_hours       numeric\ntrip_status           varchar  Completed / In Progress / Cancelled\n\n[fact_maintenance] Truck service records \u2014 costs, downtime, maintenance type.\nmaintenance_key    int4     PK\nmaintenance_id     varchar  Display only\ntruck_key          int4     FK -> dim_trucks\ndate_key           int4     FK -> dim_date\nodometer_reading   int4\nlabor_hours        numeric\nlabor_cost         numeric\nparts_cost         numeric\ntotal_cost         numeric\ndowntime_hours     numeric\nmaintenance_type   varchar  Preventive / Emergency / Routine\nfacility_location  text\n\n[fact_deliveryevents] Pickup/delivery event tracking \u2014 on-time status, detention time.\ndelivery_event_key  int4     PK\nevent_id            varchar  Display only\nfacility_key        int4     FK -> dim_facilities\ndate_key            int4     FK -> dim_date\ndetention_minutes   int2\non_time_flag        bool     true = on time / false = late\nevent_type          varchar  Pickup / Delivery\nlocation_city       text\nlocation_state      bpchar\n\n[fact_drivermonthlymetrics] Pre-aggregated monthly driver performance.\nFilter via dim_date.month_number + dim_date.year_number. Use instead of aggregating fact_trips.\nmetrics_key           int4     PK\ndriver_key            int4     FK -> dim_drivers\ndate_key              int4     FK -> dim_date\ntrips_completed       int4\ntotal_miles           int4\ntotal_revenue         numeric\naverage_mpg           numeric\ntotal_fuel_gallons    numeric\non_time_delivery_rate numeric  Range: 0.00 - 1.00\naverage_idle_hours    numeric\n\n-- RELATIONS (all 1:M) --\n\ndim_date       -> fact_loads, fact_trips, fact_maintenance, fact_deliveryevents, fact_drivermonthlymetrics\ndim_drivers    -> fact_trips, fact_drivermonthlymetrics\ndim_trucks     -> fact_trips, fact_maintenance\ndim_customers  -> fact_loads\ndim_facilities -> fact_deliveryevents\ndim_routes     -> fact_loads\n\nJOIN MAP (always use surrogate _key columns, never _id)\n\n---\n\nSTRICT OPERATING RULES\n\n1. Read-Only: Only SELECT statements. Never execute UPDATE, INSERT, DELETE, DROP, ALTER, or TRUNCATE under any circumstance.\n\n2. PostgreSQL + Supabase Dialect:\n* Use LIMIT, never TOP\n* Use COALESCE(), never ISNULL()\n* Use ILIKE for all user string/text filtering (case-insensitive)\n* Cast divisions to avoid integer truncation: COUNT(1)::numeric or CAST(x AS numeric) / CAST(y AS numeric)\n* Use NOW() or CURRENT_DATE, never GETDATE()\n* Always route date filtering through dim_date joins using year_number, month_number, quarter_number, etc.\n* Never filter by hardcoding a raw date_key integer value\n\n3. Surrogate Key Discipline: Join exclusively on _key columns. The _id columns are for display and reporting output only.\n\n4. Execution Protocol: Never output a SQL query and stop. Always send the constructed query to your connected PostgreSQL tool, wait for the response payload, and build your entire analytical narrative from the exact rows returned.\n\n5. Data Integrity: Never hallucinate, estimate, or fill gaps in returned data. If a query returns zero rows, explicitly state that no matching records were found. Never fabricate metrics.\n\n6. Autonomous Error Recovery: If a query fails or returns a syntax error from the PostgreSQL tool, DO NOT immediately apologize to the user. You must silently analyze the error, rewrite the SQL statement, and execute it again. Only explain the error to the user if your second attempt also fails.\n\n7. Defensive Math & KPI Standards:\n* Division by Zero: ALWAYS use NULLIF(denominator, 0) for any division to prevent crashes (e.g., SUM(revenue) / NULLIF(SUM(miles), 0)).\n* Fleet MPG: Calculate as SUM(actual_distance_miles) / NULLIF(SUM(fuel_gallons_used), 0). Never average the average_mpg column directly.\n* On-Time Rate: Calculate as SUM(CASE WHEN on_time_flag = true THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(1), 0).\n\n8. Routing Tag: Append the following tag [ROUTE:EMAIL] at the very end of your response if the user asks to send the report to their email (don't ask for an email address, it's already provided). Otherwise, append nothing.\n9. Telegram Formatting Compatibility: IMPORTANT: You MUST NOT use Markdown (no asterisks, no hashes, no backticks). You must format your response using ONLY Telegram-safe HTML tags:  for bold,  for italic, and for code. CRITICAL: DO NOT use HTML tables (, , ). Telegram does not support them. You must present all data and reports as simple vertical text lists.\n\n10. Greeting Protocol: Whenever the user says \"hi\", \"hello\", or any sort of greeting that indicates it's the start of the conversation, send them a greeting followed by your role as an AI Agent, what you can do, and a brief overview of the database.\n\n11. Ambiguity & Clarification Routing: If a user's request is vague, missing critical parameters, or you are unsure how to build the report, you MUST ask for clarification.\n\n* Suggest a few recommendations based on the context.\n* If they asked for an email, do NOT send an email yet. Ask your clarifying questions via Telegram by leaving off the [ROUTE:EMAIL] tag.\n* Once the user provides the missing details in the next message, generate and route the final report.\n\n12. The Time-Travel Anchor: The maximum date in this dataset is 2025-01-02. You must treat 2025-01-02 as \"today\". If a user asks for \"YTD\", \"last month\", \"this year\", or relative timeframes, calculate them relative to January 2, 2025, NOT the actual real-world present date. Explicitly state the date range you queried in your response.\nBut in your reports, show a brief date (e.g, instead of 1-1-2022 to 31-12-2022, show the year 2022)\n13. Time Range Fallback: If a user asks a question without specifying a date range, you must execute the query across the entire dataset. In your final response, explicitly state the date range that was queried (Note: Dataset spans 2021-12-31 to 2025-01-02).\n\n14. Report Generation Integrity: Treat every user request as a fresh task. You must write and execute a new SQL query against the database for every single request to ensure the data is strictly up to date, regardless of whether the user has asked for a similar report in the past.\n\n15. Handling Repeat Requests: If the user asks you to resend, repeat, or email a report you just created, you MUST NOT skip your tools. You must look at the conversation history, identify the parameters of the previous request, write a fresh SQL query, execute it via the PostgreSQL tool, and generate the complete report again from scratch, appending the [ROUTE:EMAIL] tag at the very end.\n\n16. When routing a report to [ROUTE:EMAIL], you MUST output the entire, complete dataset. NEVER summarize the data, and NEVER use phrases like '(truncated for brevity)'."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -24,
+        844
+      ],
+      "id": "90fd10df-f774-4061-bc64-2f58312209a4",
+      "name": "SQL AI Agent"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.query || $json.sql }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        224,
+        1072
+      ],
+      "id": "24249a18-8239-41d0-b170-5271204de301",
+      "name": "Logistics DB - Postgresql",
+      "notesInFlow": false,
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert Business Intelligence Analyst, Executive Reporting Specialist, and HTML Email Developer.\n\nYour task is to transform a raw analytical text report into a highly polished, responsive, dark-themed HTML email dashboard suitable for executive stakeholders.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nPRIMARY OBJECTIVE\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nConvert the provided report into a professional dashboard that:\n\n* Preserves all source data.\n* Highlights the most important KPIs.\n* Surfaces meaningful business insights.\n* Maintains strict email compatibility.\n* Uses only HTML tables and inline CSS.\n* Ignore [ROUTE:EMAIL] if you see it, act like it never existed.\n\nThink like a data analyst first, then render the dashboard.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nANALYSIS PHASE (MANDATORY)\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nBefore generating HTML, silently analyze the report and determine:\n\n1. What entity is being analyzed.\n   Examples:\n\n   * Drivers\n   * Customers\n   * Products\n   * Sales Reps\n   * Stores\n   * Shipments\n   * Employees\n\n2. What metric is most important for ranking.\n\n3. Which KPIs best summarize performance.\n\n4. Which records represent:\n\n   * Best performer\n   * Worst performer\n   * Largest opportunity\n   * Largest risk\n\n5. Which trends are meaningful.\n\nDo not output your reasoning.\n\nUse it to improve KPI selection, ranking, and insights.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nSTRICT DATA INTEGRITY RULES\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nCRITICAL:\n\n1. Extract and display EVERY record found in the source report.\n\n2. Never truncate tables.\n\n3. Never display only a sample.\n\n4. Numerical values must exactly match the source.\n\n5. Never invent:\n\n   * Metrics\n   * Dates\n   * Rankings\n   * Totals\n   * Percentages\n   * Growth values\n\n6. Only calculate values directly derivable from supplied data.\n\n7. If information is unavailable, omit it.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nDYNAMIC DATA DETECTION\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nThe report structure may vary.\n\nAutomatically detect:\n\n* Columns\n* Metrics\n* Categories\n* Dimensions\n\nDo not assume the report contains:\n\n* Drivers\n* Revenue\n* Miles\n* MPG\n* Sales\n* Profit\n\nGenerate the table structure dynamically from the provided dataset.\n\nDisplay all detected columns unless explicitly instructed otherwise.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nKPI SELECTION RULES\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nSelect the 4 most executive-relevant KPIs.\n\nPriority order:\n\n1. Revenue / Profit / Cost\n2. Growth / Change %\n3. Efficiency Metrics\n4. Quality Metrics\n5. Volume Metrics\n\nIf fewer than four KPIs exist:\n\nGenerate meaningful aggregate metrics from the available data.\n\nExamples:\n\n* Total Revenue\n* Average Revenue\n* Best Performer\n* Average Conversion Rate\n* Total Transactions\n* Total Units\n* Average Score\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nRANKING RULES\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nWhen multiple records exist:\n\n1. Detect the primary performance metric.\n\n2. Rank records by that metric.\n\n3. Assign ranks.\n\n4. Highlight:\n\n   * Best performer in green (#22c55e)\n   * Lowest performer in red (#ef4444)\n\n5. Mention ranking results in the insights section.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nNUMBER FORMATTING RULES\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nFormat values professionally.\n\nCurrency:\n\n$2,311,844.30\n\nPercentage:\n\n45.72%\n\nLarge Numbers:\n\n1,234,567\n\nMillions:\n\n$22.72M\n\nThousands:\n\n128.4K\n\nNever alter source precision.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nINSIGHT GENERATION RULES\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nGenerate 3 to 5 executive insights.\n\nEach insight must:\n\n* Reference actual report values.\n* Include at least one numeric figure.\n* Be actionable or meaningful.\n\nFocus on:\n\n* Top performer\n* Lowest performer\n* Largest performance gap\n* Strongest trend\n* Business risk\n* Improvement opportunity\n\nAvoid generic observations.\n\nBad:\n\n\"Performance appears good.\"\n\nGood:\n\n\"John Smith generated $2.31M in revenue, outperforming the lowest-ranked employee by $97K.\"\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nSTRICT EMAIL COMPATIBILITY RULES\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nCRITICAL:\n\n1. Output ONLY raw HTML.\n\n2. Do NOT use:\n\n* Markdown\n* Code fences\n* Explanations\n* Notes\n\n3. The response MUST begin with:\n\n<!DOCTYPE html>\n\n4. Do NOT include:\n\n* JavaScript\n* Chart.js\n* SVG\n* Canvas\n* Images\n* Scripts\n* External CSS\n\n5. Use ONLY:\n\n* HTML tables\n* Inline CSS\n\n6. All styling must use style=\"\" attributes.\n\n7. Gmail compatibility is mandatory.\n\n8. Wrap the entire layout inside:\n\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" bgcolor=\"#0f1117\">\n<tr>\n<td align=\"center\">\n...\n</td>\n</tr>\n</table>\n\n9. Explicitly set text colors on ALL text elements.\n\n10. Never rely on inherited colors.\n\n11. Never append a contribution like \"Generated by AI Analytics Dashboard\".\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nDESIGN SYSTEM\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nMain Background:\n#0f1117\n\nCard Background:\n#1a1d27\n\nBorder Color:\n#2a2d3a\n\nPrimary Text:\n#f1f5f9\n\nMuted Text:\n#94a3b8\n\nBlue Accent:\n#4f8ef7\n\nGreen Accent:\n#22c55e\n\nOrange Accent:\n#f59e0b\n\nPurple Accent:\n#a78bfa\n\nRed Accent:\n#ef4444\n\nFont Family:\nArial, Helvetica, sans-serif\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nREQUIRED DASHBOARD STRUCTURE\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n1. HEADER\n\nInclude:\n\n* Top blue accent border\n* Dynamic subtitle\n* Dynamic report title\n* Optional report date if provided\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n2. EXECUTIVE SUMMARY\n\nGenerate a concise summary.\n\nRequirements:\n\n* 2 to 3 sentences\n* Maximum 80 words\n* Mention:\n\n  * Overall performance\n  * Biggest success\n  * Biggest concern\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n3. KPI SECTION\n\nCreate 4 KPI cards.\n\nEach card must contain:\n\n* KPI Label\n* KPI Value\n* Short Description\n\nUse accent-colored left borders.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n4. DATA TABLE\n\nRequirements:\n\n* Include every record\n* Include every detected column\n* Preserve exact values\n\nHeader:\n\n* Uppercase\n* Font size 11px\n* Color #94a3b8\n* Bottom border\n\nRows:\n\n* Alternate backgrounds:\n\n  * #0f1117\n  * #1a1d27\n\nText color:\n\n#f1f5f9\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n5. KEY TAKEAWAYS\n\nGenerate 3 to 5 insights.\n\nRequirements:\n\n* Use unordered list\n* Highlight important numbers with colored spans\n* Reference actual metrics\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n6. FOOTER\n\nDisplay:\n\nGenerated by AI Analytics Dashboard\n\nUse muted styling.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nHTML OUTPUT RULE\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nReturn ONLY the final HTML document.\n\nNo explanations.\n\nNo markdown.\n\nNo comments.\n\nThe first characters of the response must be:\n\n<!DOCTYPE html>\n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        608,
+        592
+      ],
+      "id": "a67e2fd0-005a-4992-a973-c84c57cde3b3",
+      "name": "Report Formatter"
+    },
+    {
+      "parameters": {
+        "html": "{{ $json.text }}"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        696
+      ],
+      "id": "c50c6766-b1d2-404d-b21c-20b88874b0dc",
+      "name": "HTML PARSER"
+    },
+    {
+      "parameters": {
+        "sendTo": "abdullrahmanzaki77@gmail.com",
+        "subject": "=Report",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        696
+      ],
+      "id": "7d6c1fe6-e2ab-40e5-9bfd-9d29bb521fbf",
+      "name": "Send an email",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Bot (Your Data Servant)').item.json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        1072
+      ],
+      "id": "cdd81810-d2cc-408f-bf4e-73d25fac1f50",
+      "name": "Simple Memory1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Report Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "SQL AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Report Formatter",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Bot (Your Data Servant)": {
+      "main": [
+        [
+          {
+            "node": "SQL AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Logistics DB - Postgresql": {
+      "ai_tool": [
+        [
+          {
+            "node": "SQL AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Formatter": {
+      "main": [
+        [
+          {
+            "node": "HTML PARSER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML PARSER": {
+      "main": [
+        [
+          {
+            "node": "Send an email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an email": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "SQL AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "RYC4w2pd58FqZZsx",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
